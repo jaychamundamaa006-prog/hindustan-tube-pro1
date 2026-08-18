@@ -11,10 +11,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: hindustan-tube-pro
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,22 +24,37 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Check project files
+      - name: Show project structure
         run: |
+          echo "Current directory:"
           pwd
-          ls -la
-          echo "Checking Gradle wrapper..."
-          ls -la gradlew gradle 2>/dev/null || true
+          echo "Files:"
+          find . -maxdepth 3 -type f | sort | head -200
 
-      - name: Make Gradle executable
-        run: chmod +x gradlew
+      - name: Find Gradle wrapper
+        run: |
+          GRADLEW=$(find . -name gradlew -type f | head -1)
+          if [ -z "$GRADLEW" ]; then
+            echo "ERROR: gradlew not found"
+            exit 1
+          fi
+          echo "Found Gradle wrapper: $GRADLEW"
+          chmod +x "$GRADLEW"
+          echo "GRADLEW=$GRADLEW" >> "$GITHUB_ENV"
 
       - name: Build Release APK
-        run: ./gradlew assembleRelease --stacktrace
+        run: |
+          PROJECT_DIR=$(dirname "$GRADLEW")
+          cd "$PROJECT_DIR"
+          ./gradlew assembleRelease --stacktrace
+
+      - name: Find APK
+        run: |
+          find . -type f -name "*.apk" -print
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Hindustan-Tube-Pro-APK
-          path: 'hindustan-tube-pro/**/build/outputs/apk/release/*.apk'
+          path: '**/build/outputs/apk/release/*.apk'
           if-no-files-found: error
