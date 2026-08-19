@@ -1,31 +1,56 @@
-- name: Find Gradle project
-  shell: bash
-  run: |
-    echo "Searching for gradlew..."
-    find . -name "gradlew" -type f -not -path "./.git/*"
+name: Build Android APK
 
-- name: Build Debug APK
-  shell: bash
-  run: |
-    GRADLEW=$(find . -name "gradlew" -type f -not -path "./.git/*" | head -n 1)
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
 
-    if [ -z "$GRADLEW" ]; then
-      echo "ERROR: gradlew was not found."
-      echo "Repository structure:"
-      find . -maxdepth 3 -type f | head -200
-      exit 1
-    fi
+jobs:
+  build:
+    runs-on: ubuntu-latest
 
-    echo "Found Gradle wrapper: $GRADLEW"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    PROJECT_DIR=$(dirname "$GRADLEW")
-    cd "$PROJECT_DIR"
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
 
-    chmod +x gradlew
-    ./gradlew assembleDebug --stacktrace
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
-- name: Upload APK
-  uses: actions/upload-artifact@v4
-  with:
-    name: app-debug
-    path: "**/build/outputs/apk/**/*.apk"
+      - name: Find Gradle project
+        shell: bash
+        run: |
+          echo "Searching for gradlew..."
+          find . -name "gradlew" -type f -not -path "./.git/*"
+
+      - name: Build Debug APK
+        shell: bash
+        run: |
+          GRADLEW=$(find . -name "gradlew" -type f -not -path "./.git/*" | head -n 1)
+
+          if [ -z "$GRADLEW" ]; then
+            echo "ERROR: gradlew was not found."
+            echo "Repository structure:"
+            find . -maxdepth 3 -type f | head -200
+            exit 1
+          fi
+
+          echo "Found Gradle wrapper: $GRADLEW"
+
+          PROJECT_DIR=$(dirname "$GRADLEW")
+          cd "$PROJECT_DIR"
+
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: "**/build/outputs/apk/**/*.apk"
