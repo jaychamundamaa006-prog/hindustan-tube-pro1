@@ -1,36 +1,31 @@
-name: Build Android APK
+- name: Find Gradle project
+  shell: bash
+  run: |
+    echo "Searching for gradlew..."
+    find . -name "gradlew" -type f -not -path "./.git/*"
 
-on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
+- name: Build Debug APK
+  shell: bash
+  run: |
+    GRADLEW=$(find . -name "gradlew" -type f -not -path "./.git/*" | head -n 1)
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+    if [ -z "$GRADLEW" ]; then
+      echo "ERROR: gradlew was not found."
+      echo "Repository structure:"
+      find . -maxdepth 3 -type f | head -200
+      exit 1
+    fi
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    echo "Found Gradle wrapper: $GRADLEW"
 
-      - name: Setup JDK
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
+    PROJECT_DIR=$(dirname "$GRADLEW")
+    cd "$PROJECT_DIR"
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+    chmod +x gradlew
+    ./gradlew assembleDebug --stacktrace
 
-      - name: Make Gradle executable
-        run: chmod +x gradlew
-
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-debug
-          path: '**/build/outputs/apk/**/*.apk'
+- name: Upload APK
+  uses: actions/upload-artifact@v4
+  with:
+    name: app-debug
+    path: "**/build/outputs/apk/**/*.apk"
