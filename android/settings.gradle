@@ -1,0 +1,11 @@
+// Hindustan Tube Pro — settings.gradle
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+rootProject.name = "HindustanTubePro"
+include ':app'
