@@ -23,27 +23,49 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Extract ZIP
+        shell: bash
+        run: |
+          ZIP_FILE=$(find . -maxdepth 1 -type f -iname "*.zip" | head -n 1)
+
+          if [ -z "$ZIP_FILE" ]; then
+            echo "ERROR: ZIP file not found"
+            exit 1
+          fi
+
+          echo "Found ZIP: $ZIP_FILE"
+
+          mkdir -p android-project
+          unzip -o "$ZIP_FILE" -d android-project
+
+          echo "Extracted files:"
+          find android-project -maxdepth 3 -type f | head -200
+
       - name: Find Gradle project
         shell: bash
         run: |
-          echo "Searching for gradlew..."
-          find . -name "gradlew" -type f -not -path "./.git/*"
+          GRADLEW=$(find android-project -name "gradlew" -type f | head -n 1)
+
+          if [ -z "$GRADLEW" ]; then
+            echo "ERROR: gradlew was not found inside ZIP."
+            echo "Searching project files..."
+            find android-project -maxdepth 5 -type f | head -300
+            exit 1
+          fi
+
+          echo "Found Gradle wrapper:"
+          echo "$GRADLEW"
 
       - name: Build Debug APK
         shell: bash
         run: |
-          GRADLEW=$(find . -name "gradlew" -type f -not -path "./.git/*" | head -n 1)
-
-          if [ -z "$GRADLEW" ]; then
-            echo "ERROR: gradlew was not found."
-            echo "Repository structure:"
-            find . -maxdepth 3 -type f | head -200
-            exit 1
-          fi
-
-          echo "Found Gradle wrapper: $GRADLEW"
+          GRADLEW=$(find android-project -name "gradlew" -type f | head -n 1)
 
           PROJECT_DIR=$(dirname "$GRADLEW")
+
+          echo "Project directory:"
+          echo "$PROJECT_DIR"
+
           cd "$PROJECT_DIR"
 
           chmod +x gradlew
